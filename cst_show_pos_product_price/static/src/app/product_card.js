@@ -1,16 +1,15 @@
-// Part of Odoo. See LICENSE file for full copyright and licensing details.
+/** @odoo-module **/
 
-import { ProductCard } from "@point_of_sale/app/generic_components/product_card/product_card";
+import { ProductCard } from "@point_of_sale/app/components/product_card/product_card";
 import { patch } from "@web/core/utils/patch";
-import { usePos } from "@point_of_sale/app/store/pos_hook";
+import { usePos } from "@point_of_sale/app/hooks/pos_hook";
 
 
 patch(ProductCard.prototype, {
     get formattedPrice() {
         const product = this.props.product;
-
-        if (product && this.pos) {
-            return this.pos.getProductPriceFormatted(product);
+        if (product) {
+            return this.env?.utils?.formatCurrency(product?.list_price);
         }
         return '';
     },

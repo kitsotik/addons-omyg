@@ -1,71 +1,106 @@
+/** @odoo-module **/
+
 import { ControlButtons } from "@point_of_sale/app/screens/product_screen/control_buttons/control_buttons";
 import { patch } from "@web/core/utils/patch";
 import { _t } from "@web/core/l10n/translation";
-import { makeAwaitable } from "@point_of_sale/app/store/make_awaitable_dialog";
 import { ConfirmationDialog, AlertDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { useService } from "@web/core/utils/hooks";
 
 patch(ControlButtons.prototype, {
-    setup(){
-        super.setup()
+    setup() {
+        super.setup();
         this.dialogService = useService("dialog");
+        this.orm = this.env.services.orm;
+        this.pos = this.env.services.pos;
     },
-    async clickCreateSaleOrder(){
-        var self = this
-        const order = this.pos.get_order();
-        const partner = order.get_partner();
-        if(!partner){
+
+
+    async clickCreateSaleOrder() {
+        const order = this.pos.selectedOrder;
+        if (!order) {
             this.dialogService.add(AlertDialog, {
-                body: _t("Select Customer."),
+                title: _t("Missing Order"),
+                body: _t("No active order found."),
+            });
+            return;
+        }
+
+        const partner = order.partner_id;
+        if (!partner?.id) {
+            this.dialogService.add(AlertDialog, {
                 title: _t("Missing Customer"),
-                confirm: () => {},
-                confirmLabel: _t("Close"),
+                body: _t("Select a customer."),
             });
             return;
         }
-        if(!order.get_orderlines().length){
+
+        const lines = order.lines || [];
+        if (!lines.length) {
             this.dialogService.add(AlertDialog, {
-                body: _t("There are no Product for SaleOrder."),
-                title: _t("Missing File"),
-                confirm: () => {},
-                confirmLabel: _t("Close"),
+                title: _t("Missing Products"),
+                body: _t("There are no products in the order."),
             });
             return;
         }
-        const oderdetails = {};
-        for (const line of order.get_orderlines()) {
-            oderdetails[line.id] = { 
-                product: line.get_product().id, 
-                quantity: line.qty,
-                price: line.price_unit,
-                discount: line.discount,
-            };
-        }
-        oderdetails['partner_id'] = order.get_partner().id
-        if(order.get_total_tax() > 0){
-            oderdetails['tax_amount'] = order.get_total_tax()
-        }
-        const result = await this.pos.data.call("sale.order", "craete_saleorder_from_pos", [oderdetails]);
-        if(result){
+
+        const orderDetails = {
+            partner_id: partner.id,
+            lines: lines.map((line) => {
+                const product = line.product || line.product_id || line.data?.product;
+                return {
+                    product_id: product?.id || 0,
+                    name: product?.display_name || product?.name || "Unnamed Product",
+                    qty: line.qty,
+                    price: line.price_unit,
+                    subtotal: line.price_subtotal,
+                    discount: line.discount || 0,
+                };
+            }),
+            tax_amount: order.amount_tax || order.get_total_tax?.(),
+        };
+
+        console.log("📤 Sending orderDetails:", orderDetails);
+
+        try {
+        console.log("method called",this.orm);
+            const result = await this.orm.call(
+                "sale.order",
+                "create_saleorder_from_pos",
+                [orderDetails]
+            );
+
+            console.log("🔎 Backend returned:", result);
+
+            if (!result) {
+                this.dialogService.add(AlertDialog, {
+                    title: _t("Error"),
+                    body: _t("Backend did not return a valid response."),
+                });
+                return;
+            }
+
+            const orderId = result.id || (typeof result === "number" ? result : null);
+            const orderName = result.name || `SO${orderId}`;
+
             this.dialog.add(ConfirmationDialog, {
-                title: _t('Successfully!'),
-                body: _t("Sales Order %s Created Successfully!!!!",result.name),
+                title: _t("Success"),
+                body: _t(`Sale Order ${orderName} created successfully!`),
                 confirmLabel: _t("Confirm Order"),
-                cancelLabel: _t("Ok"),
+                cancelLabel: _t("Close"),
                 confirm: () => {
-                    this.pos.data.call('sale.order', 'action_confirm', [result.id]);
+                    if (orderId) {
+                        this.orm.call("sale.order", "action_confirm", [orderId]);
+                    }
                 },
-                cancel: async () => {},
-                dismiss: async () => {},
             });
-            order.set_partner(false);
+
+            this.pos.addNewOrder();
+        } catch (err) {
+            console.error("❌ Error while creating sale order:", err);
+            this.dialogService.add(AlertDialog, {
+                title: _t("Error"),
+                body: _t("Could not create Sale Order. Check backend logs."),
+            });
         }
-        const lines = [];
-        for (const line of order.get_orderlines()) {
-            lines.push(line)
-        }
-        for (var l = 0; l < lines.length; l++) {
-            lines[l].delete()
-        }
-    }
+    },
 });

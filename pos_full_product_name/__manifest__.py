@@ -16,7 +16,7 @@
     'maintainers': ['agungsepruloh'],
     'license': 'LGPL-3',
     'category': 'Point of Sale',
-    'version': '18.0.1.0.0',
+    'version': '19.0.1.0.0',
 
     # any module necessary for this one to work correctly
     'depends': ['base', 'point_of_sale'],

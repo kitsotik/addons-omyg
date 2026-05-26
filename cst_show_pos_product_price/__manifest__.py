@@ -12,7 +12,7 @@
     "author": "CodeSphere Tech",
     "website": "https://www.codespheretech.in/",
     "category": "Point of Sale",
-    "version": "18.0.1.0.0",
+    "version": "19.0.1.0.0",
     "sequence": 0,
     "currency": "USD",
     "price": "0.00",
@@ -22,7 +22,9 @@
     ],
     "assets": {
         "point_of_sale._assets_pos": [
-            "cst_show_pos_product_price/static/src/**/*",
+            "cst_show_pos_product_price/static/src/app/product_card.css",
+            "cst_show_pos_product_price/static/src/app/product_card.js",
+            "cst_show_pos_product_price/static/src/app/product_card.xml",
         ],
     },
     "images": ["static/description/Banner.png"],

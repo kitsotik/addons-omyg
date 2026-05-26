@@ -13,7 +13,6 @@ setup() {
         },
     async addProductToOrder(...args) {
         var type = this.pos.config.stock_type
-        console.log("ar",args[0])
         if (this.pos.config.is_restrict_product && ((type == 'qty_on_hand') && (args['0'].qty_available <= 0)) | ((type == 'virtual_qty') && (args['0'].virtual_available <= 0)) |
             ((args['0'].qty_available <= 0) && (args['0'].virtual_available <= 0)) && (args['0'].type != 'service' && (!(args['0'].to_weight)))) {
             // If the product restriction is activated in the settings and quantity is out stock, it show the restrict popup.

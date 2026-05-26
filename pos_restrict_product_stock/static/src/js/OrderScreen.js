@@ -1,5 +1,5 @@
 /** @odoo-module */
-import { PosStore } from "@point_of_sale/app/store/pos_store";
+import { PosStore } from "@point_of_sale/app/services/pos_store";
 import { patch } from "@web/core/utils/patch";
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { _t } from "@web/core/l10n/translation";
@@ -11,8 +11,7 @@ patch(PosStore.prototype, {
              const pay = true
              const body = []
              const pro_id = false
-             for (const line of this.get_order().get_orderlines()) {
-//                  const isService = product.detailed_type === 'service';
+             for (const line of this.getOrder().getOrderlines()) {
                  if (line.config.is_restrict_product && ((type == 'qty_on_hand') && (line.product_id.qty_available <= 0)) | ((type == 'virtual_qty') && (line.product_id.virtual_available <= 0)) |
                                          ((line.product_id.qty_available <= 0) && (line.product_id.virtual_available <= 0)) && (line.product_id.type != 'service' && (!(line.product_id.to_weight)))) {
                                          // If the product restriction is activated in the settings and quantity is out stock, it show the restrict popup.

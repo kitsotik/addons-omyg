@@ -23,8 +23,9 @@ Credits
 -------
 Developer:
    (V16) Raneesha M K,
-   (V17) Anjhana A K
-   (V18) Manasa T P
+   (V17) Anjhana A K,
+   (V18) Manasa T P,
+   (V19) Yadhu Shankar E
 Contact : odoo@cybrosys.com
 
 Contacts

@@ -36,27 +36,35 @@ class ResCurrency(models.Model):
             value = tds[1].text.strip().replace(',', '.')
             value = float(value) + 20  # ajuste manual
 
-            currency = self.search([('name', '=', 'USD')], limit=1)
+            currency = self.with_context(active_test=False).search([('name', '=', 'USD')], limit=1)
             if not currency:
                 raise UserError('No se encontró la moneda USD')
 
             today = fields.Date.today()
             rate_value = 1 / value
 
-            rate = self.env['res.currency.rate'].search([
-                ('currency_id', '=', currency.id),
-                ('name', '=', today)
-            ], limit=1)
+            # Cada compañía sólo ve sus propias cotizaciones (o las sin compañía).
+            # Se carga en todas las compañías cuya moneda es el peso.
+            Rate = self.env['res.currency.rate'].sudo()
+            companies = self.env['res.company'].sudo().search([('currency_id.name', '=', 'ARS')])
+            for company in companies or [self.env['res.company']]:
+                rate = Rate.search([
+                    ('currency_id', '=', currency.id),
+                    ('company_id', '=', company.id or False),
+                    ('name', '=', today),
+                ], limit=1)
+                if rate:
+                    rate.write({'rate': rate_value})
+                else:
+                    Rate.create({
+                        'name': today,
+                        'currency_id': currency.id,
+                        'company_id': company.id or False,
+                        'rate': rate_value,
+                    })
+            _logger.info('Dólar BNA %.2f cargado en %s', value,
+                         ', '.join(companies.mapped('name')) or 'todas las compañías')
 
-            if rate:
-                rate.write({'rate': rate_value})
-            else:
-                self.env['res.currency.rate'].create({
-                    'name': today,
-                    'currency_id': currency.id,
-                    'rate': rate_value
-                })
-
-        except Exception as e:
+        except Exception:
             _logger.exception('Error actualizando tasa de cambio BNA')
             raise
